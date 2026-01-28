@@ -37,6 +37,7 @@ class Router_V3 {
         'ml_me' => Me::class,
         'ml_save' => Save::class,
         'ml_run' => Run::class,
+        'ml_image' => Image::class,
         'ml_assist' => Assist::class,
     ];
 

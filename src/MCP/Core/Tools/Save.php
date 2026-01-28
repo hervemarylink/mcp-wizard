@@ -20,7 +20,7 @@ use MCP_No_Headless\Schema\Publication_Schema;
 class Save {
 
     const TOOL_NAME = 'ml_save';
-    const VERSION = '3.2.30';
+    const VERSION = '3.2.31';
 
     const MODE_CREATE = 'create';
     const MODE_UPDATE = 'update';

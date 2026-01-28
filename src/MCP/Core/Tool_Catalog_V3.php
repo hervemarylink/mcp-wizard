@@ -72,6 +72,7 @@ class Tool_Catalog_V3 {
             self::tool_ml_save(),
             self::tool_ml_me(),
             self::tool_ml_ping(),
+            self::tool_ml_image(),
         ];
     }
 
@@ -524,6 +525,48 @@ DESC,
         ];
     }
 
+
+    private static function tool_ml_image(): array {
+        return [
+            'name' => 'ml_image',
+            'strate' => self::STRATE_CORE,
+            'description' => <<<'DESC'
+■ UTILISER QUAND : Attacher une image générée par Claude à une publication existante.
+■ NE PAS UTILISER SI : La publication n'existe pas encore (utiliser ml_save d'abord).
+
+Reçoit une image en base64 et l'attache comme image mise en avant (featured image) de la publication.
+
+Workflow typique :
+1. Créer la publication avec ml_save
+2. Générer une image illustrative
+3. Appeler ml_image avec publication_id et l'image en base64
+
+Formats acceptés : PNG, JPEG, WebP.
+DESC,
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'publication_id' => [
+                        'type' => 'integer',
+                        'description' => 'ID de la publication à illustrer',
+                    ],
+                    'image_base64' => [
+                        'type' => 'string',
+                        'description' => 'Image encodée en base64 (avec ou sans préfixe data:image/...;base64,)',
+                    ],
+                    'alt' => [
+                        'type' => 'string',
+                        'description' => 'Texte alternatif de l\'image (accessibilité)',
+                    ],
+                    'caption' => [
+                        'type' => 'string',
+                        'description' => 'Légende de l\'image',
+                    ],
+                ],
+                'required' => ['publication_id', 'image_base64'],
+            ],
+        ];
+    }
     /**
      * Get pack tools (Strate 2)
      *
