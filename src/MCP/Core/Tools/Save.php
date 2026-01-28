@@ -20,7 +20,7 @@ use MCP_No_Headless\Schema\Publication_Schema;
 class Save {
 
     const TOOL_NAME = 'ml_save';
-    const VERSION = '3.2.31';
+    const VERSION = '3.2.32';
 
     const MODE_CREATE = 'create';
     const MODE_UPDATE = 'update';
@@ -194,6 +194,7 @@ class Save {
         }
 
         $labels = array_key_exists('labels', $args) ? ($args['labels'] ?? []) : null;
+        $image_prompt = trim($args['image_prompt'] ?? '');
 
         // Determine actual mode
         if ($mode === self::MODE_AUTO) {
@@ -308,6 +309,14 @@ class Save {
 
         $latency_ms = round((microtime(true) - $start_time) * 1000);
         $result['latency_ms'] = $latency_ms;
+
+        // Generate featured image via AI Engine if image_prompt provided
+        if ($image_prompt !== '' && !empty($result['publication']['id'])) {
+            $image_result = self::generate_featured_image($result['publication']['id'], $image_prompt);
+            if ($image_result) {
+                $result['publication']['featured_image'] = $image_result;
+            }
+        }
 
         return $result;
     }
@@ -920,4 +929,47 @@ class Save {
         ];
     }
 
+
+    /**
+     * Generate featured image via AI Engine (DALL-E) and attach to publication
+     *
+     * @param int $post_id Publication ID
+     * @param string $prompt Image description prompt
+     * @return array|null Image info or null on failure
+     */
+    private static function generate_featured_image(int $post_id, string $prompt): ?array {
+        global $mwai;
+
+        if (!isset($mwai) || !method_exists($mwai, 'imageQueryForMediaLibrary')) {
+            return null;
+        }
+
+        try {
+            $media = $mwai->imageQueryForMediaLibrary($prompt, ['scope' => 'mcp'], $post_id);
+
+            if (is_wp_error($media)) {
+                return null;
+            }
+
+            $media_id = (int) ($media['id'] ?? 0);
+            if (!$media_id) {
+                return null;
+            }
+
+            // Set as featured image
+            set_post_thumbnail($post_id, $media_id);
+
+            // Set alt text from prompt (truncated)
+            $alt = mb_substr($prompt, 0, 125);
+            update_post_meta($media_id, '_wp_attachment_image_alt', sanitize_text_field($alt));
+
+            return [
+                'id' => $media_id,
+                'url' => wp_get_attachment_url($media_id),
+                'prompt' => $prompt,
+            ];
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
 }
