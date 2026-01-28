@@ -132,6 +132,20 @@ function mlmcp_init(): void {
 
     if (class_exists('Meow_MWAI_Core')) {
         new \MCP_No_Headless\Integration\AI_Engine_Bridge();
+
+        // Force MCP user to Hervé (93) — AI Engine's get_admin_user() picks wrong admin
+        add_filter('mwai_allow_mcp', function($allow, $request) {
+            if ($allow) {
+                $target_id = 93;
+                if (get_current_user_id() !== $target_id) {
+                    $user = get_user_by('id', $target_id);
+                    if ($user) {
+                        wp_set_current_user($target_id, $user->user_login);
+                    }
+                }
+            }
+            return $allow;
+        }, 20, 2);
     }
 
     // Register Picasso integration hook for Auto-Improve governance

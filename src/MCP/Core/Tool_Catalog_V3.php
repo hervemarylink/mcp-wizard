@@ -220,7 +220,7 @@ DESC,
                     ],
                     'type' => [
                         'type' => 'string',
-                        'enum' => ['content','tool','prompt','style','client','projet','publication'],
+                        'enum' => ['contenu','tool','prompt','style','client','projet','publication'],
                         'description' => 'Filtrer par type',
                     ],
                     'space_id' => [
@@ -392,13 +392,13 @@ DESC,
                     ],
                     'type' => [
                         'type' => 'string',
-                        'enum' => ['content','tool','prompt','style','client','projet','publication'],
+                        'enum' => ['contenu','tool','prompt','style','client','projet','publication'],
                         'description' => 'Type de contenu',
                     ],
                     'status' => [
                         'type' => 'string',
                         'enum' => ['draft', 'publish', 'pending', 'trash'],
-                        'description' => 'Statut (défaut: draft). "trash" = suppression (corbeille)',
+                        'description' => 'Statut (défaut: pending). "trash" = suppression (corbeille)',
                     ],
                     'tags' => [
                         'type' => 'array',
@@ -456,7 +456,7 @@ DESC,
                     // For action=context
                     'type' => [
                         'type' => 'string',
-                        'enum' => ['content','tool','prompt','style','client','projet','publication'],
+                        'enum' => ['contenu','tool','prompt','style','client','projet','publication'],
                         'description' => 'Type de contexte',
                     ],
                     'name' => [

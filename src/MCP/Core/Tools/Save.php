@@ -20,7 +20,7 @@ use MCP_No_Headless\Schema\Publication_Schema;
 class Save {
 
     const TOOL_NAME = 'ml_save';
-    const VERSION = '3.2.31';
+    const VERSION = '3.2.32';
 
     const MODE_CREATE = 'create';
     const MODE_UPDATE = 'update';
@@ -50,7 +50,7 @@ class Save {
 
     // Allowed publication labels (publication_label taxonomy) — whitelist to prevent term pollution
     private static function get_core_labels(): array {
-        return ['prompt', 'tool', 'content', 'style', 'client', 'projet'];
+        return ['prompt', 'tool', 'contenu', 'style', 'client', 'projet'];
     }
 
     // Labels that MUST NOT be used even if they exist (legacy pollution)
@@ -136,18 +136,18 @@ class Save {
         'tool',
         'prompt',
         'style',
-        'content',
+        'contenu',
         'client',
         'projet',
     ];
 
     // Type normalization (aliases)
     const TYPE_ALIASES = [
-        // canonicalize synonyms to 'content'
-        'publication' => 'content',
-        'data' => 'content',
-        'contenu' => 'content',
-        'doc' => 'content',
+        // canonicalize synonyms to 'contenu'
+        'publication' => 'contenu',
+        'data' => 'contenu',
+        'content' => 'contenu',
+        'doc' => 'contenu',
     ];
 
     /**
@@ -183,14 +183,14 @@ class Save {
         $tags = array_key_exists('tags', $args) ? ($args['tags'] ?? []) : null;
         $metadata = $args['metadata'] ?? [];
         $type = isset($args['type']) ? self::normalize_type($args['type']) : null;
-        $status = $args['status'] ?? self::STATUS_DRAFT;
+        $status = $args['status'] ?? self::STATUS_PENDING;
 
         // LLM / backward-safe: if someone sends type='draft', interpret it as status=draft (and default type=data)
         if (is_string($args['type'] ?? null) && strtolower((string) $args['type']) === self::STATUS_DRAFT) {
             if (!isset($args['status'])) {
                 $status = self::STATUS_DRAFT;
             }
-            $type = 'content';
+            $type = 'contenu';
         }
 
         $labels = array_key_exists('labels', $args) ? ($args['labels'] ?? []) : null;
@@ -249,7 +249,7 @@ class Save {
                     'Label obligatoire',
                     [
                         'type' => "Spécifiez un type: " . implode(', ', self::get_core_labels()),
-                        'labels' => "Ou spécifiez labels[]: prompt, tool, content, style, client, projet"
+                        'labels' => "Ou spécifiez labels[]: prompt, tool, contenu, style, client, projet"
                     ]
                 );
             }
@@ -365,7 +365,7 @@ class Save {
             'publication' => [
                 'id' => $post_id,
                 'title' => $title,
-                'type' => \MCP_No_Headless\Schema\Publication_Schema::get_type($post_id) ?: ($type ?: 'content'),
+                'type' => \MCP_No_Headless\Schema\Publication_Schema::get_type($post_id) ?: ($type ?: 'contenu'),
                 'types' => \MCP_No_Headless\Schema\Publication_Schema::get_types($post_id),
                 'status' => get_post_status($post_id),
                 'space_id' => \MCP_No_Headless\Schema\Publication_Schema::get_space_id($post_id),
@@ -447,7 +447,7 @@ class Save {
             'publication' => [
                 'id' => $publication_id,
                 'title' => get_post_field('post_title', $publication_id, 'raw'),
-                'type' => \MCP_No_Headless\Schema\Publication_Schema::get_type($publication_id) ?: ($type ?: 'content'),
+                'type' => \MCP_No_Headless\Schema\Publication_Schema::get_type($publication_id) ?: ($type ?: 'contenu'),
                 'types' => \MCP_No_Headless\Schema\Publication_Schema::get_types($publication_id),
                 'status' => get_post_status($publication_id),
                 'space_id' => \MCP_No_Headless\Schema\Publication_Schema::get_space_id($publication_id),
@@ -534,10 +534,18 @@ class Save {
             }
         }
 
-        // Tags
+        // Tags - only allow existing terms (prevent tag pollution)
         if ($tags !== null) {
             $sanitized_tags = array_map('sanitize_text_field', $tags);
-            wp_set_post_terms($post_id, $sanitized_tags, \MCP_No_Headless\Schema\Publication_Schema::TAX_TAG);
+            $valid_tags = [];
+            foreach ($sanitized_tags as $tag) {
+                if (term_exists($tag, \MCP_No_Headless\Schema\Publication_Schema::TAX_TAG)) {
+                    $valid_tags[] = $tag;
+                }
+            }
+            if (!empty($valid_tags)) {
+                wp_set_post_terms($post_id, $valid_tags, \MCP_No_Headless\Schema\Publication_Schema::TAX_TAG);
+            }
         }
 
         // Additional metadata
