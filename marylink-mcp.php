@@ -133,20 +133,24 @@ function mlmcp_init(): void {
     if (class_exists('Meow_MWAI_Core')) {
         new \MCP_No_Headless\Integration\AI_Engine_Bridge();
 
-        // Force MCP user to Hervé (93) — AI Engine's get_admin_user() picks wrong admin
-        add_filter('mwai_allow_mcp', function($allow, $request) {
-            if ($allow) {
-                $target_id = 93;
-                if (get_current_user_id() !== $target_id) {
-                    $user = get_user_by('id', $target_id);
-                    if ($user) {
-                        wp_set_current_user($target_id, $user->user_login);
-                    }
+    }
+
+    // Force MCP user to Hervé (93) via rest_pre_dispatch
+    // Note: mwai_allow_mcp filter doesn't work for noauth URL routes
+    // rest_pre_dispatch fires after permission_callback, before route handler
+    add_filter('rest_pre_dispatch', function($result, $server, $request) {
+        $route = $request->get_route();
+        if (strpos($route, '/mcp/') !== false) {
+            $current = get_current_user_id();
+            if ($current > 0 && $current !== 93) {
+                $user = get_user_by('id', 93);
+                if ($user) {
+                    wp_set_current_user(93, $user->user_login);
                 }
             }
-            return $allow;
-        }, 20, 2);
-    }
+        }
+        return $result;
+    }, 10, 3);
 
     // Register Picasso integration hook for Auto-Improve governance
     mlmcp_register_picasso_hooks();
