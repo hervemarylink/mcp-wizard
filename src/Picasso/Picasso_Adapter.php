@@ -319,31 +319,52 @@ class Picasso_Adapter {
      * @return array Steps with name, label, order
      */
     public static function get_space_steps(int $space_id): array {
-        $steps = get_post_meta($space_id, '_ml_workflow_steps', true);
+        // Picasso canonical: _space_steps (from picasso-backend-dev Helper\Space)
+        $steps = get_post_meta($space_id, '_space_steps', true);
+
+        // Legacy fallback: _ml_workflow_steps
+        if (!is_array($steps) || empty($steps)) {
+            $steps = get_post_meta($space_id, '_ml_workflow_steps', true);
+        }
 
         if (is_array($steps) && !empty($steps)) {
-            return array_map(function ($step, $index) {
+            $order = 0;
+            return array_map(function ($step) use (&$order) {
                 if (is_string($step)) {
                     return [
+                        'slug' => $step,
                         'name' => $step,
                         'label' => ucfirst($step),
-                        'order' => $index,
+                        'order' => $order++,
                     ];
                 }
                 return [
-                    'name' => $step['name'] ?? $step['slug'] ?? "step_{$index}",
-                    'label' => $step['label'] ?? $step['name'] ?? "Step {$index}",
-                    'order' => $step['order'] ?? $index,
+                    'slug' => $step['slug'] ?? $step['name'] ?? "step_{$order}",
+                    'name' => $step['slug'] ?? $step['name'] ?? "step_{$order}",
+                    'label' => $step['name'] ?? $step['label'] ?? "Step {$order}",
+                    'order' => $order++,
                 ];
-            }, $steps, array_keys($steps));
+            }, $steps);
         }
 
-        // Default steps
-        return [
-            ['name' => 'draft', 'label' => 'Draft', 'order' => 0],
-            ['name' => 'review', 'label' => 'Review', 'order' => 1],
-            ['name' => 'published', 'label' => 'Published', 'order' => 2],
-        ];
+        // No steps defined = no step-driven workflow
+        return [];
+    }
+
+    /**
+     * Get first step slug for a space (for default assignment)
+     *
+     * @param int $space_id Space ID
+     * @return string|null First step slug or null
+     */
+    public static function get_first_step_slug(int $space_id): ?string {
+        $steps = self::get_space_steps($space_id);
+        if (empty($steps)) {
+            return null;
+        }
+        // Sort by order and return first
+        usort($steps, fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
+        return $steps[0]['slug'] ?? $steps[0]['name'] ?? null;
     }
 
     /**

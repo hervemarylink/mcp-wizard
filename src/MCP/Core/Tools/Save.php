@@ -571,11 +571,16 @@ class Save {
             update_post_meta($post_id, '_publication_label', (int) $label_terms[0]);
         }
 
-        // Default workflow step: submit (soumis pour validation)
+        // Default workflow step: first step from space, fallback to 'submit'
         if (class_exists(Publication_Schema::class)) {
             $current_step = Publication_Schema::get_step($post_id);
             if (empty($current_step)) {
-                Publication_Schema::set_step($post_id, 'submit');
+                $effective_space = $space_id ?: Publication_Schema::get_space_id($post_id);
+                $first_step = null;
+                if ($effective_space && class_exists(\MCP_No_Headless\Picasso\Picasso_Adapter::class)) {
+                    $first_step = \MCP_No_Headless\Picasso\Picasso_Adapter::get_first_step_slug((int) $effective_space);
+                }
+                Publication_Schema::set_step($post_id, $first_step ?: 'submit');
             }
         }
 
